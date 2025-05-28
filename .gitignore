@@ -1,2 +1,4 @@
 /gsconfig-py3
 /data
+/.venv
+__main__.py
