@@ -1,4 +1,4 @@
-name: Devops AClimate Cut Spatial Importer Package
+name: Devops AClimate Spatial Importer Package
 
 on:
   push:
