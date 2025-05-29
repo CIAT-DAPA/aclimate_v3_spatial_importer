@@ -11,6 +11,7 @@ setup(
     packages=find_packages('src'),
     package_dir={'': 'src'},
     include_package_data=True,
+    package_data={"": ["*.properties"]},
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
