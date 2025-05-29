@@ -11,7 +11,7 @@ setup(
     packages=find_packages('src'),
     package_dir={'': 'src'},
     package_data={
-        "aclimate_v3_spatial_importer": ["conf/*.properties"],
+        "aclimate_v3_spatial_importer": ["*.properties"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
