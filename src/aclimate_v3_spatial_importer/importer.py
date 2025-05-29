@@ -1,7 +1,7 @@
 import os
+from pathlib import Path
 import shutil
 import logging
-from typing import Optional
 from .tools import GeoserverClient
 
 # Configurar logging
@@ -14,10 +14,7 @@ def upload_image_mosaic(
     workspace: str,
     store: str,
     raster_dir: str,
-    date_format: str,
-    geoserver_url: str,
-    geo_user: Optional[str] = None,
-    geo_pwd: Optional[str] = None
+    date_format: str
 ) -> None:
     """
     Sube un ImageMosaic a GeoServer
@@ -27,27 +24,33 @@ def upload_image_mosaic(
         store: Nombre del store (mosaico)
         raster_dir: Directorio con los archivos raster
         date_format: Formato de fecha para los archivos (ej. 'yyyyMMdd')
-        geoserver_url: URL del GeoServer
-        geo_user: Usuario de GeoServer (opcional, toma de env vars por defecto)
-        geo_pwd: Contraseña de GeoServer (opcional, toma de env vars por defecto)
 
     """
     # Validar formato de fecha
     if date_format not in VALID_DATE_FORMATS:
         raise ValueError(f"Formato de fecha inválido. Opciones válidas: {VALID_DATE_FORMATS}")
     
-    # Obtener credenciales
-    user = geo_user or os.getenv('GEO_USER')
-    password = geo_pwd or os.getenv('GEO_PWD')
-    
-    if not user or not password:
-        raise EnvironmentError("Credenciales de GeoServer no configuradas")
+  
+    # Obtener credenciales de variables de entorno
+    """
+        geoserver_url: URL del GeoServer
+        geo_user: Usuario de GeoServer
+        geo_pwd: Contraseña de GeoServer
+    """
+    try:
+        geoserver_url = os.environ['GEOSERVER_URL']
+        user = os.environ['GEOSERVER_USER']
+        password = os.environ['GEOSERVER_PASSWORD']
+    except KeyError as e:
+        raise EnvironmentError(
+            f"Variable de entorno obligatoria no configurada: {e}. "
+            "Debes configurar GEOSERVER_URL, GEOSERVER_USER y GEOSERVER_PASSWORD."
+        ) from e
     
     # Configurar directorios
     base_dir = os.path.dirname(os.path.dirname(__file__))
-    properties_dir = os.path.join(base_dir, "properties", date_format)
-    print(properties_dir)
-    tmp_dir = os.path.join(base_dir, "properties", "tmp")
+    properties_dir = os.path.join(base_dir, "aclimate_v3_spatial_importer", "conf", date_format)
+    tmp_dir = os.path.join(base_dir, "aclimate_v3_spatial_importer", "conf", "tmp")
 
     # Copiar el contenido de properties_dir a tmp_dir, reemplazando archivos existentes
     if os.path.exists(tmp_dir):
@@ -97,11 +100,6 @@ def upload_image_mosaic(
         raise
     finally:
         # Limpiar directorios temporales
-        mosaic_zip_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mosaic.zip")
+        mosaic_zip_path = Path(__file__).resolve().parent.parent.parent / "mosaic.zip"
         if os.path.exists(mosaic_zip_path):
             os.remove(mosaic_zip_path)
-
-
-# base_dir = os.path.dirname(os.path.dirname(__file__))
-# data_dir = os.path.join(base_dir, "data")
-# upload_image_mosaic("test", "test_store", data_dir, "yyyyMM", "https://geo.aclimate.org/geoserver/rest/", "dguzman", "Mvu6ygSjQ#}hYW")

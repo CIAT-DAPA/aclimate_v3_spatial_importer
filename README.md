@@ -1,65 +1,111 @@
+
 # 📘 aclimate_v3_spatial_importer
-Paquete de python para subir datos espaciales a un Geoserver
----
-## 🏷️ Versión y Tags
-- Versión actual: `v3.0.1`
-- Tags relevantes: `raster`, `datos espaciales`, `geoserver`
----
-## 📌 Introducción
-Paquete desarrollado para facilitar la subida de datos espaciales a la plataforma Geoserver en formato ImageMosaic
----
-## ⚙️ Prerrequisitos
-Lista de herramientas necesarias para ejecutar el proyecto:
-- [ ] Python 3.10.9
-- [ ] Instalar paquete gsconfig-py3 (https://github.com/dimitri-justeau/gsconfig-py3)
+
+## 🏷️ Version and tags
+- Current version: `v3.0.1`
+- Relevant tags: `raster`, `spatial data`, `geoserver`
 
 ---
-## 📚 Enlace a la documentación
-Accede a la documentación oficial o interna del proyecto:
-📎 [Documentación completa](https://enlace-a-documentacion.com)
+
+## 📌 Introduction
+
+Package developed to facilitate the upload of spatial data to the Geoserver platform in ImageMosaic format.
+
 ---
-## 🧰 Instalación
-Pasos para clonar y configurar el entorno:
-```bash
-git clone https://github.com/usuario/repositorio.git
-cd repositorio
+
+## ⚙️ Prerequisites
+
+List of necessary tools to run the project:
+- Python 3.10
+- Geoserver
+
 ---
-## Crear entorno virtual (si aplica):
+
+## ⚙️ Installation
+
 ```bash
-python -m venv env
-source env/bin/activate  # Windows: env\Scripts\activate
+pip install git+https://github.com/CIAT-DAPA/aclimate_v3_spatial_importer
 ```
----
-## Instalar dependencias:
+
+To install a specific version:
+
 ```bash
-pip install -r requirements.txt
-# o
-npm install
+pip install git+https://github.com/CIAT-DAPA/aclimate_v3_spatial_importer@v3.0.1
 ```
+
 ---
-## 🔐 Configuración de variables de entorno (si aplica)
-Crea un archivo .env en la raíz del proyecto con el siguiente contenido:
+
+## 🔐 Environment Variable Configuration
+
+Set environmental variables as follows:
+
+- Windows:
 ```bash
-DEBUG=True
-SECRET_KEY=tu_clave_secreta
-DATABASE_URL=sqlite:///db.sqlite3
-#Demás variables necesarias…
+set GEOSERVER_URL=http://your_geoserver/geoserver/rest/
+set GEOSERVER_USER=your_user
+set GEOSERVER_PASSWORD=your_password
 ```
----
-## 🚀 Uso / Ejecución
+
+- Linux:
 ```bash
-# Python (Django)
-python manage.py runserver
-# Next.js / React
-npm run dev
+export GEOSERVER_URL=http://your_geoserver/geoserver/rest/
+export GEOSERVER_USER=your_user
+export GEOSERVER_PASSWORD=your_password
 ```
+
 ---
-## 🧪 Testing
-Comandos para ejecutar las pruebas:
+
+## 🚀 Basic Usage
+
+1. Upload raster files
+
+```python
+from aclimate_v3_spatial_importer import upload_image_mosaic
+
+# Define required parameters
+workspace = "test"
+store = "test_store"
+date_format = "yyyyMM"
+data_dir = "./data/"
+    
+# Call the function to upload the image mosaic
+upload_image_mosaic(workspace, store, data_dir, date_format)
+```
+
+> [!NOTE]  
+>  You must change the paths to where your files are located.  
+>  Required variables:
+> - GEOSERVER_URL: Base URL of GeoServer (e.g., http://localhost:8080/geoserver/rest/)
+> - GEOSERVER_USER: Username
+> - GEOSERVER_PASSWORD: Password
+
+---
+
+## 🔄 CI/CD Pipeline Overview
+
+### Workflow Architecture
+
+Our GitHub Actions pipeline implements a three-stage deployment process:
+
 ```bash
-pytest          # Python
-npm run test    # Node.js / Frontend
+Code Push → Test Stage → Merge Stage → Release Stage
 ```
+
 ---
-## 🗂️ Estructura del Proyecto
-Revisar sección 3 de este documento para ejemplos de scalfonding.
+
+## 🗂️ Project Structure
+
+```bash
+aclimate_v3_spatial_importer/
+│
+├── .github/
+│   └── workflows/ # CI/CD pipeline configurations
+├── src/
+│   └── aclimate_v3_spatial_importer/
+│       ├── conf/           # Date format for layers
+│       ├── __init__.py     # Public interface
+│       ├── importer.py     # Import to Geoserver function
+│       └── tools.py        # gsconfig-py package functions
+├── setup.py
+└── requirements.txt        # Package dependencies
+```
