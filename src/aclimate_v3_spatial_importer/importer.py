@@ -49,9 +49,9 @@ def upload_image_mosaic(
         ) from e
     
     # Configurar directorios
-    base_dir = os.path.dirname(os.path.dirname(__file__))
-    properties_dir = os.path.join(base_dir, "aclimate_v3_spatial_importer", "conf", date_format)
-    tmp_dir = os.path.join(base_dir, "aclimate_v3_spatial_importer", "conf", "tmp")
+    base_dir = Path(__file__).resolve().parent
+    properties_dir = base_dir / "conf" / date_format
+    tmp_dir = base_dir / "conf" / "tmp"
 
     # Copiar el contenido de properties_dir a tmp_dir, reemplazando archivos existentes
     if os.path.exists(tmp_dir):
@@ -59,7 +59,6 @@ def upload_image_mosaic(
     shutil.copytree(properties_dir, tmp_dir)
     
     # Crear cliente
-    #geo_url = "https://geo.aclimate.org/geoserver/rest/"
     geoclient = GeoserverClient(geoserver_url, user, password)
     
     try:
