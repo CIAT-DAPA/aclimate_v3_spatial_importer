@@ -14,7 +14,8 @@ def upload_image_mosaic(
     workspace: str,
     store: str,
     raster_dir: str,
-    date_format: str
+    date_format: str,
+    replace: bool = False
 ) -> None:
     """
     Sube un ImageMosaic a GeoServer
@@ -86,6 +87,17 @@ def upload_image_mosaic(
                     folder_tmp=tmp_dir
                 )
                 store_obj = geoclient.get_store(store)  # Actualizar referencia
+            # Si el store ya existe y replace es True, reemplazar el mosaico
+            elif store_obj is not None and replace:
+                logger.info("Reemplazando mosaico existente")
+                geoclient.replace_mosaic(
+                    store_name=store,
+                    file=raster_path,
+                    folder_properties=properties_dir,
+                    folder_tmp=tmp_dir
+                )
+                store_obj = geoclient.get_store(store)  # Actualizar referencia
+
             else:
                 logger.info("Actualizando mosaico existente")
                 geoclient.update_mosaic(
