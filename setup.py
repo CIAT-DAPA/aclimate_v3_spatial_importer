@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="aclimate_v3_spatial_importer",
-    version='v3.0.10',
+    version='v3.0.11',
     author="dan3s",
     author_email="d.e.guzman@cgiar.com",
     description="Package to import spatial data into Geoserver",
