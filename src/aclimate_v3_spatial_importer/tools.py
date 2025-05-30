@@ -137,6 +137,13 @@ class GeoserverClient(object):
         output = self.zip_files(file, folder_properties, folder_tmp)
         self.catalog.harvest_uploadgranule(output, store)
         print("Mosaic updated")
+    
+    def replace_mosaic(self, store, file, folder_properties, folder_tmp):
+        store = self.get_store(store)
+        if store:
+            self.catalog.delete(store, recurse=True) 
+        self.create_mosaic(store, file, folder_properties, folder_tmp)
+        print("Mosaic replaced")
 
     def check(self, store):
         coverages = self.catalog.mosaic_coverages(store)

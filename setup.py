@@ -10,8 +10,13 @@ setup(
     download_url="https://github.com/CIAT-DAPA/aclimate_v3_spatial_importer",
     packages=find_packages('src'),
     package_dir={'': 'src'},
+    package_data={
+        "aclimate_v3_spatial_importer": [
+            "conf/**/*",
+            "conf/*/*",    
+        ]
+    },
     include_package_data=True,
-    package_data={"": ["*.properties"]},
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
