@@ -25,7 +25,7 @@ setup(
     install_requires=[
         "certifi==2025.4.26",
         "charset-normalizer==3.4.2",
-        "gsconfig @ git+https://github.com/dimitri-justeau/gsconfig-py3.git",
+        "gsconfig-py3==1.0.7",
         "idna==3.10",
         "requests==2.32.3",
         "urllib3==2.4.0",
