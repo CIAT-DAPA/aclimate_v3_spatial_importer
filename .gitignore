@@ -3,3 +3,4 @@
 /.venv
 __main__.py
 test.py
+src/aclimate_v3_spatial_importer/conf/mosaic.zip
