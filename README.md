@@ -57,7 +57,7 @@ export GEOSERVER_PASSWORD=your_password
 
 ## 🚀 Basic Usage
 
-1. Upload raster files
+1. Upload raster files or delete store
 
 ```python
 from aclimate_v3_spatial_importer import upload_image_mosaic
@@ -68,8 +68,11 @@ store = "test_store"
 date_format = "yyyyMM"
 data_dir = "./data/"
     
-# Call the function to upload the image mosaic
+# Function to upload the image mosaic
 upload_image_mosaic(workspace, store, data_dir, date_format)
+
+#Functions to delete a store
+delete_store(workspace, store)
 ```
 
 > [!NOTE]  
