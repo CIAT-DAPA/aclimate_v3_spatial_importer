@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import uuid
 import shutil
 import logging
 from .tools import GeoserverClient
@@ -44,8 +45,7 @@ def upload_image_mosaic(
     base_dir = Path(__file__).resolve().parent
     properties_dir = base_dir / "conf" / date_format
     
-    # CAMBIO CLAVE: Crear directorio temporal con nombre único para evitar conflictos
-    import uuid
+    #Crear directorio temporal con nombre único para evitar conflictos
     unique_id = uuid.uuid4().hex[:8]
     tmp_dir = base_dir / "conf" / f"tmp_{unique_id}"
     
