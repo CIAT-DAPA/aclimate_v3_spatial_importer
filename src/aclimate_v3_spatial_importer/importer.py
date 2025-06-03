@@ -14,8 +14,7 @@ def upload_image_mosaic(
     workspace: str,
     store: str,
     raster_dir: str,
-    date_format: str,
-    replace: bool = False
+    date_format: str
 ) -> None:
     """
     Sube un ImageMosaic a GeoServer
@@ -25,19 +24,12 @@ def upload_image_mosaic(
         store: Nombre del store (mosaico)
         raster_dir: Directorio con los archivos raster
         date_format: Formato de fecha para los archivos (ej. 'yyyyMMdd')
-
     """
     # Validar formato de fecha
     if date_format not in VALID_DATE_FORMATS:
         raise ValueError(f"Formato de fecha inválido. Opciones válidas: {VALID_DATE_FORMATS}")
     
-  
     # Obtener credenciales de variables de entorno
-    """
-        geoserver_url: URL del GeoServer
-        geo_user: Usuario de GeoServer
-        geo_pwd: Contraseña de GeoServer
-    """
     try:
         geoserver_url = os.environ['GEOSERVER_URL']
         user = os.environ['GEOSERVER_USER']
@@ -48,13 +40,20 @@ def upload_image_mosaic(
             "Debes configurar GEOSERVER_URL, GEOSERVER_USER y GEOSERVER_PASSWORD."
         ) from e
     
-    # Configurar directorios
+    # Configurar directorios usando rutas absolutas
     base_dir = Path(__file__).resolve().parent
     properties_dir = base_dir / "conf" / date_format
-    tmp_dir = base_dir / "conf" / "tmp"
+    
+    # CAMBIO CLAVE: Crear directorio temporal con nombre único para evitar conflictos
+    import uuid
+    unique_id = uuid.uuid4().hex[:8]
+    tmp_dir = base_dir / "conf" / f"tmp_{unique_id}"
+    
+    # Asegurarse de que raster_dir sea una ruta absoluta
+    raster_dir = Path(raster_dir).resolve()
 
     # Copiar el contenido de properties_dir a tmp_dir, reemplazando archivos existentes
-    if os.path.exists(tmp_dir):
+    if tmp_dir.exists():
         shutil.rmtree(tmp_dir)
     shutil.copytree(properties_dir, tmp_dir)
     
@@ -67,43 +66,42 @@ def upload_image_mosaic(
         
         # Obtener o crear store
         store_obj = geoclient.get_store(store)
-        raster_files = [os.path.join(raster_dir, f) for f in os.listdir(raster_dir)
-                        if f.endswith(('.tif', '.tiff'))]
+        
+        # Buscar archivos raster usando Path para mejor manejo de rutas
+        raster_files = list(raster_dir.glob('*.tif')) + list(raster_dir.glob('*.tiff'))
         
         if not raster_files:
             raise FileNotFoundError(f"No se encontraron archivos raster en {raster_dir}")
         
+        logger.info(f"Archivos encontrados: {[f.name for f in raster_files]}")
+        
         for raster_path in raster_files:
-            if not os.path.exists(raster_path):
+            # Convertir a string para compatibilidad
+            raster_path_str = str(raster_path)
+            
+            logger.info(f"Procesando archivo: {raster_path_str}")
+            
+            if not raster_path.exists():
+                logger.warning(f"Archivo no encontrado: {raster_path_str}")
                 continue
                 
             if store_obj is None:
                 logger.info("Creando nuevo mosaico")
                 geoclient.create_mosaic(
                     store_name=store,
-                    file=raster_path,
-                    folder_properties=properties_dir,
-                    folder_tmp=tmp_dir
+                    file=raster_path_str,
+                    folder_properties=str(properties_dir),
+                    folder_tmp=str(tmp_dir)
                 )
                 store_obj = geoclient.get_store(store)  # Actualizar referencia
-            # Si el store ya existe y replace es True, reemplazar el mosaico
-            elif store_obj is not None and replace:
-                logger.info("Reemplazando mosaico existente")
-                geoclient.replace_mosaic(
-                    store_name=store,
-                    file=raster_path,
-                    folder_properties=properties_dir,
-                    folder_tmp=tmp_dir
-                )
-                store_obj = geoclient.get_store(store)  # Actualizar referencia
-
+                
             else:
                 logger.info("Actualizando mosaico existente")
                 geoclient.update_mosaic(
-                    store=store_obj,
-                    file=raster_path,
-                    folder_properties=properties_dir,
-                    folder_tmp=tmp_dir
+                    store_name=store_obj,
+                    file=raster_path_str,
+                    folder_properties=str(properties_dir),
+                    folder_tmp=str(tmp_dir)
                 )
                 
     except Exception as e:
@@ -111,6 +109,27 @@ def upload_image_mosaic(
         raise
     finally:
         # Limpiar directorios temporales
-        mosaic_zip_path = Path(__file__).resolve().parent.parent.parent / "mosaic.zip"
-        if os.path.exists(mosaic_zip_path):
-            os.remove(mosaic_zip_path)
+        if tmp_dir.exists():
+            shutil.rmtree(tmp_dir)
+            
+
+def delete_store(workspace, store_name):
+    """
+    Elimina un store de GeoServer
+    """
+    # Obtener credenciales de variables de entorno
+    try:
+        geoserver_url = os.environ['GEOSERVER_URL']
+        user = os.environ['GEOSERVER_USER']
+        password = os.environ['GEOSERVER_PASSWORD']
+    except KeyError as e:
+        raise EnvironmentError(
+            f"Variable de entorno obligatoria no configurada: {e}. "
+            "Debes configurar GEOSERVER_URL, GEOSERVER_USER y GEOSERVER_PASSWORD."
+        ) from e
+    
+    # Crear cliente
+    geoclient = GeoserverClient(geoserver_url, user, password)
+    geoclient.connect()
+    geoclient.get_workspace(workspace)    
+    geoclient.delete_mosaic(store_name)
