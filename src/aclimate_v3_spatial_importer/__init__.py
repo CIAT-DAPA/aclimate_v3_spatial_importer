@@ -1,1 +1,1 @@
-from .importer import upload_image_mosaic
+from .importer import upload_image_mosaic, delete_store
