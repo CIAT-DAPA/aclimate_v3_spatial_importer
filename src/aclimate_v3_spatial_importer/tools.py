@@ -1,7 +1,7 @@
 import os
 import sys
-from zipfile import ZipFile
-import glob
+import zipfile
+import time
 import shutil
 from geoserver.catalog import Catalog
 from geoserver.resource import Coverage
@@ -67,40 +67,64 @@ class GeoserverClient(object):
             print("Workspace not found:", store_name)
             return None
 
-    def zip_files(self, file, folder_properties, folder_tmp):
-        if os.path.exists(file) and os.path.exists(folder_properties):
-
-            if os.path.exists(folder_tmp):
-                shutil. rmtree(folder_tmp)
-            os.mkdir(folder_tmp)
-
-            props = glob.glob(os.path.join(folder_properties, '*.properties'))
-            if len(props) != 2:
-                print("check the properties file")
-                sys.exit()
-            for p in props:
-                f = p.rsplit(os.path.sep, 1)[-1]
-                print("Copying properties:", file)
-                shutil.copyfile(p, os.path.join(folder_tmp, f))
-
-            f = file.rsplit(os.path.sep, 1)[-1]
-            shutil.copyfile(file, os.path.join(folder_tmp, f))
-
-            zip_name = "mosaic.zip"  # zip file name
-            list_files = glob.glob(os.path.join(folder_tmp, "*.*"))
-            zip = ZipFile(zip_name, mode="w")
-            print("Zipping")
-            for f in list_files:
-                print(f)
-                zip.write(f, f.rsplit(os.path.sep, 1)[-1])
-            zip.close()
-            zip_path = os.path.join(os.getcwd(), zip_name)
-            return zip_path
-        else:
-            print("Not zipped")
-            print(file, os.path.exists(file))
-            print(folder_properties, os.path.exists(folder_properties))
-            return None
+    
+    def zip_files(self, file: str, folder_properties: str, folder_tmp: str) -> str:
+        """
+        Crea un archivo ZIP con el archivo raster y las propiedades del mosaico
+        """
+        import logging
+        from pathlib import Path
+        
+        logger = logging.getLogger(__name__)
+        
+        # Convertir todas las rutas a Path objects para mejor manejo
+        file_path = Path(file).resolve()
+        tmp_path = Path(folder_tmp).resolve()
+        
+        logger.info(f"Archivo origen: {file_path}")
+        logger.info(f"Directorio temporal: {tmp_path}")
+        
+        # Obtener el nombre del archivo
+        filename = file_path.name
+        destination_path = tmp_path / filename
+        
+        logger.info(f"Destino planificado: {destination_path}")
+        
+        # SOLUCIÓN AL PROBLEMA: Verificar si son el mismo archivo antes de copiar
+        try:
+            # Si las rutas resueltas son diferentes, copiar el archivo
+            if file_path != destination_path:
+                logger.info(f"Copiando {file_path} a {destination_path}")
+                shutil.copy2(str(file_path), str(destination_path))
+            else:
+                logger.info("El archivo ya está en la ubicación correcta, no es necesario copiarlo")
+        except shutil.SameFileError:
+            logger.warning(f"Origen y destino son el mismo archivo: {file}")
+            # No hacer nada, continuar con el proceso
+        except Exception as e:
+            logger.error(f"Error copiando archivo: {e}")
+            raise
+        
+        # Crear el archivo ZIP
+        zip_path = tmp_path.parent / "mosaic.zip"
+        
+        try:
+            with zipfile.ZipFile(str(zip_path), 'w', zipfile.ZIP_DEFLATED) as zipf:
+                # Agregar todos los archivos del directorio temporal
+                for root, dirs, files in os.walk(str(tmp_path)):
+                    for file_name in files:
+                        file_path_in_tmp = Path(root) / file_name
+                        # Nombre del archivo en el ZIP (relativo al directorio tmp)
+                        arcname = file_path_in_tmp.relative_to(tmp_path)
+                        zipf.write(str(file_path_in_tmp), str(arcname))
+                        logger.debug(f"Agregado al ZIP: {arcname}")
+            
+            logger.info(f"Archivo ZIP creado: {zip_path}")
+            return str(zip_path)
+            
+        except Exception as e:
+            logger.error(f"Error creando archivo ZIP: {e}")
+            raise
 
     def create_mosaic(self, store_name, file, folder_properties, folder_tmp):
         output = self.zip_files(file, folder_properties, folder_tmp)
@@ -133,17 +157,18 @@ class GeoserverClient(object):
         print("Time Dimension is enabled")
         print("Done Successfully!")
 
-    def update_mosaic(self, store, file, folder_properties, folder_tmp):
+    def update_mosaic(self, store_name, file, folder_properties, folder_tmp):
         output = self.zip_files(file, folder_properties, folder_tmp)
-        self.catalog.harvest_uploadgranule(output, store)
+        self.catalog.harvest_uploadgranule(output, store_name)
         print("Mosaic updated")
     
-    def replace_mosaic(self, store, file, folder_properties, folder_tmp):
-        store = self.get_store(store)
+    def delete_mosaic(self, store_name):
+        store = self.get_store(store_name)
         if store:
             self.catalog.delete(store, recurse=True) 
-        self.create_mosaic(store, file, folder_properties, folder_tmp)
-        print("Mosaic replaced")
+            print("Mosaic deleted")
+        else:
+            print("Store not found:", store_name)
 
     def check(self, store):
         coverages = self.catalog.mosaic_coverages(store)
