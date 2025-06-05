@@ -1,8 +1,9 @@
 import os
 import sys
 import zipfile
-import time
+from pathlib import Path
 import shutil
+from tqdm import tqdm
 from geoserver.catalog import Catalog
 from geoserver.resource import Coverage
 #import geoserver.util
@@ -68,74 +69,59 @@ class GeoserverClient(object):
             return None
 
     
+    
     def zip_files(self, file: str, folder_properties: str, folder_tmp: str) -> str:
         """
-        Crea un archivo ZIP con el archivo raster y las propiedades del mosaico
+        Crea un archivo ZIP con el archivo raster o directorio y las propiedades del mosaico,
+        colocando todos los archivos en la raíz del ZIP.
         """
-        import logging
-        from pathlib import Path
         
-        logger = logging.getLogger(__name__)
-        
-        # Convertir todas las rutas a Path objects para mejor manejo
         file_path = Path(file).resolve()
         tmp_path = Path(folder_tmp).resolve()
+        content_path = tmp_path / "content"  # Carpeta temporal para el contenido plano
+        content_path.mkdir(parents=True, exist_ok=True)
         
-        logger.info(f"Archivo origen: {file_path}")
-        logger.info(f"Directorio temporal: {tmp_path}")
+        # 1. Copiar archivos raster (solo los archivos, no la estructura de directorios)
+        if file_path.is_dir():
+            # Copiar todos los archivos del directorio a la carpeta content (sin subdirectorios)
+            for item in file_path.iterdir():
+                if item.is_file():
+                    shutil.copy2(item, content_path / item.name)
+        else:
+            # Copiar archivo individual
+            shutil.copy2(file_path, content_path / file_path.name)
         
-        # Obtener el nombre del archivo
-        filename = file_path.name
-        destination_path = tmp_path / filename
+        # 2. Copiar archivos de propiedades directamente a content_path
+        properties_path = Path(folder_properties).resolve()
+        if properties_path.is_dir():
+            for prop_file in properties_path.iterdir():
+                if prop_file.is_file():
+                    shutil.copy2(prop_file, content_path / prop_file.name)
         
-        logger.info(f"Destino planificado: {destination_path}")
-        
-        # SOLUCIÓN AL PROBLEMA: Verificar si son el mismo archivo antes de copiar
-        try:
-            # Si las rutas resueltas son diferentes, copiar el archivo
-            if file_path != destination_path:
-                logger.info(f"Copiando {file_path} a {destination_path}")
-                shutil.copy2(str(file_path), str(destination_path))
-            else:
-                logger.info("El archivo ya está en la ubicación correcta, no es necesario copiarlo")
-        except shutil.SameFileError:
-            logger.warning(f"Origen y destino son el mismo archivo: {file}")
-            # No hacer nada, continuar con el proceso
-        except Exception as e:
-            logger.error(f"Error copiando archivo: {e}")
-            raise
-        
-        # Crear el archivo ZIP
+        # 3. Crear ZIP con todos los archivos en la raíz
         zip_path = tmp_path.parent / "mosaic.zip"
         
-        try:
-            with zipfile.ZipFile(str(zip_path), 'w', zipfile.ZIP_DEFLATED) as zipf:
-                # Agregar todos los archivos del directorio temporal
-                for root, dirs, files in os.walk(str(tmp_path)):
-                    for file_name in files:
-                        file_path_in_tmp = Path(root) / file_name
-                        # Nombre del archivo en el ZIP (relativo al directorio tmp)
-                        arcname = file_path_in_tmp.relative_to(tmp_path)
-                        zipf.write(str(file_path_in_tmp), str(arcname))
-                        logger.debug(f"Agregado al ZIP: {arcname}")
-            
-            logger.info(f"Archivo ZIP creado: {zip_path}")
-            return str(zip_path)
-            
-        except Exception as e:
-            logger.error(f"Error creando archivo ZIP: {e}")
-            raise
+        # Listar todos los archivos en content_path
+        all_files = list(content_path.iterdir())
+        
+        # Comprimir con barra de progreso (todos los archivos en raíz)
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for file_in_content in tqdm(all_files, desc="Compressing files", unit="file"):
+                if file_in_content.is_file():
+                    # Usar solo el nombre del archivo (sin rutas) para arcname
+                    zipf.write(file_in_content, file_in_content.name)
+        
+        return str(zip_path)
 
     def create_mosaic(self, store_name, file, folder_properties, folder_tmp):
         output = self.zip_files(file, folder_properties, folder_tmp)
-        print(output)
+        print(f"Working...")
         self.catalog.create_imagemosaic(
             store_name, output, workspace=self.workspace)
         print(f"Mosaic store : {store_name} is created!")
         store = self.catalog.get_store(store_name, workspace=self.workspace)
         url = self.url + "workspaces/" + self.workspace_name + \
             "/coveragestores/" + store_name + "/coverages/" + store_name + ".xml"
-        print(url)
         xml = self.catalog.get_xml(url)
         name = xml.find("name").text
         coverage = Coverage(self.catalog, store=store,
