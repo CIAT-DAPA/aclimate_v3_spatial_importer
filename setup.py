@@ -29,6 +29,7 @@ setup(
         "idna==3.10",
         "requests==2.32.3",
         "urllib3==2.4.0",
+        "tqdm==4.67.1",
 
     ]
 )
