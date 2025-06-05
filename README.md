@@ -18,10 +18,18 @@ Package developed to facilitate the upload of spatial data to the Geoserver plat
 List of necessary tools to run the project:
 - Python 3.10
 - Geoserver
+- gsconfig-py3 package installed
 
 ---
+## ⚙️ Installation of gsconfig-py3
+In you enviroment install as follows:
 
-## ⚙️ Installation
+```bash
+git clone https://github.com/dimitri-justeau/gsconfig-py3.git 
+cd gsconfig-py3/
+python setup.py install 
+```
+## ⚙️ Installation of aclimate_v3_spatial_importer
 
 ```bash
 pip install git+https://github.com/CIAT-DAPA/aclimate_v3_spatial_importer
