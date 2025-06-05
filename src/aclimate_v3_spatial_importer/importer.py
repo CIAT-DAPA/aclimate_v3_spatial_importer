@@ -67,50 +67,39 @@ def upload_image_mosaic(
         # Obtener o crear store
         store_obj = geoclient.get_store(store)
         
-        # Buscar archivos raster usando Path para mejor manejo de rutas
-        raster_files = list(raster_dir.glob('*.tif')) + list(raster_dir.glob('*.tiff'))
-        
-        if not raster_files:
-            raise FileNotFoundError(f"No se encontraron archivos raster en {raster_dir}")
-        
-        logger.info(f"Archivos encontrados: {[f.name for f in raster_files]}")
-        
-        for raster_path in raster_files:
-            # Convertir a string para compatibilidad
-            raster_path_str = str(raster_path)
+       
+        if not raster_dir.exists():
+            logger.warning(f"   Directory not found: {raster_dir}")
             
-            logger.info(f"Procesando archivo: {raster_path_str}")
-            
-            if not raster_path.exists():
-                logger.warning(f"Archivo no encontrado: {raster_path_str}")
-                continue
                 
-            if store_obj is None:
-                logger.info("Creando nuevo mosaico")
+        if store_obj is None:
+                logger.info("   Creating new mosaic store")
                 geoclient.create_mosaic(
                     store_name=store,
-                    file=raster_path_str,
+                    file=raster_dir,
                     folder_properties=str(properties_dir),
                     folder_tmp=str(tmp_dir)
                 )
                 store_obj = geoclient.get_store(store)  # Actualizar referencia
                 
-            else:
-                logger.info("Actualizando mosaico existente")
+        else:
+                logger.info("   Updating existing mosaic store")
                 geoclient.update_mosaic(
                     store_name=store_obj,
-                    file=raster_path_str,
+                    file=raster_dir,
                     folder_properties=str(properties_dir),
                     folder_tmp=str(tmp_dir)
                 )
                 
     except Exception as e:
-        logger.error(f"Error procesando {store}: {str(e)}")
+        logger.error(f"     Error processing {store}: {str(e)}")
         raise
     finally:
         # Limpiar directorios temporales
         if tmp_dir.exists():
             shutil.rmtree(tmp_dir)
+        if base_dir / "conf" / "mosaic.zip":
+            (base_dir / "conf" / "mosaic.zip").unlink(missing_ok=True)
             
 
 def delete_store(workspace, store_name):
