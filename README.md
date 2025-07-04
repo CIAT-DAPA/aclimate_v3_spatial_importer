@@ -92,18 +92,6 @@ delete_store(workspace, store)
 
 ---
 
-## 🔄 CI/CD Pipeline Overview
-
-### Workflow Architecture
-
-Our GitHub Actions pipeline implements a three-stage deployment process:
-
-```bash
-Code Push → Test Stage → Merge Stage → Release Stage
-```
-
----
-
 ## 🗂️ Project Structure
 
 ```bash
